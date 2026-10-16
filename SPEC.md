@@ -1,124 +1,405 @@
-# Cover Studio — Technical Spec
+# Cover Studio — Technical Specification
 
-This is the design/implementation reference for Cover Studio: architecture, pipeline, API surface,
-and the VRAM gauge. See [README.md](README.md) for setup and known limitations.
+Cover Studio is a local-first, one-click AI song cover generation studio built on **YuE2-3B**, **audio.cpp**, **SheetSage2**, and **faster-whisper**. It transforms source audio recordings into fully arranged, style-transformed vocal and instrumental covers while preserving source melody, lyrical cadence, and phrasing structure.
 
-## Architecture
+---
+
+## 1. System Architecture
+
+Cover Studio employs a decoupled multi-process architecture to isolate heavy machine learning dependencies (PyTorch, transformers, CUDA/Vulkan runtimes) and prevent Python dependency conflicts (specifically SheetSage2's dependency on `transformers==4.45.2` versus newer HuggingFace libraries).
 
 ```
-Browser (app/static/) ──HTTP/SSE──▶ FastAPI bridge (app/server.py, :8420)
-                                          │
-                            ┌─────────────┼──────────────────┐
-                            ▼             ▼                  ▼
-                     audiocpp_server  SheetSage2          nvidia-smi
-                     (:8180, native)  (in-process,        (subprocess,
-                     YuE2 + Qwen3-ASR  torch/CPU)          VRAM readout)
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Web Browser Client                              │
+│              (Vanilla HTML5 / Modern CSS / ES6+ JS)                    │
+│    • Session Selector        • Waveform Player    • Timed Lyrics Grid  │
+│    • Style Matrix Multi-pick • Live VRAM Gauge    • EventSource SSE    │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTP / SSE (:8420)
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                    FastAPI Host Application (app/server.py)             │
+│    • Session Store & Disk Cache     • Background Job Dispatcher         │
+│    • Style Preset CRUD Engine       • SSE Telemetry Broadcast           │
+│    • nvidia-smi VRAM Monitor        • Direct File Serving (/completed)  │
+└───────┬───────────────────────────┬────────────────────────────┬───────┘
+        │ Subprocess / IPC          │ In-Process (PyTorch CPU)   │ HTTP REST (:8180)
+┌───────▼───────────────┐  ┌────────▼──────────────────┐ ┌───────▼──────────────┐
+│  .venv-demucs Worker  │  │   SheetSage2 Engine       │ │   audio.cpp Server   │
+│ (htdemucs_ft Stems)   │  │ (MERT-v2 Full-Song Score) │ │ (Native C++ YuE2)    │
+│ • Isolated PyTorch    │  │ • Monophonic Vocal Track  │ │ • Vulkan / CUDA      │
+│ • Vocal Stem Extract  │  │ • Combined Score Grid     │ │ • Qwen3-ASR fallback │
+│ • Non-destructive Log │  │ • Major/Minor Key Flip    │ │ • GGUF Weight Engine │
+└───────────────────────┘  └───────────────────────────┘ └──────────────────────┘
+        │
+┌───────▼───────────────┐
+│ .venv-whisper Aligner │
+│ • faster-whisper v3   │
+│ • Wav2Vec2 CTC Aligner│
+│ • Word-level Timings  │
+└───────────────────────┘
 ```
 
-- **`app/server.py`** — FastAPI app. Bridges the plain browser UI to two local engines: `audiocpp_server`
-  (native, built separately from [audio.cpp](https://github.com/0xShug0/audio.cpp)) for YuE2 generation
-  and Qwen3-ASR lyrics transcription, and an in-process CPU call to `sheetsage2_transcribe.py` for melody
-  transcription (SheetSage2 has no published GGUF port, so it runs the original PyTorch model).
-- **`app/static/`** — plain HTML/CSS/vanilla JS. No build step, no framework.
-- **`app/styles.json`** — the 16 style presets (`{id, label, prompt}`), human-editable directly or through
-  the in-app "Manage styles" panel. `server.py` loads it at startup instead of hardcoding presets.
+### Core Subsystems
 
-## Pipeline
+1. **FastAPI Application (`app/server.py`)**: Host HTTP daemon (`127.0.0.1:8420` or `0.0.0.0:8420`) handling request coordination, persistent session management, Server-Sent Events (SSE) telemetry, and orchestration across background workers.
+2. **Native Inference Daemon (`audiocpp_server`)**: High-performance C++ inference engine listening on `127.0.0.1:8180`. Executes YuE2-3B generation via Vulkan or CUDA using quantised GGUF weights. Patched with RoPE buffer alignment and batched COL2IM dispatch fixes.
+3. **Vocal Stem Separation (`app/vocal_separation.py`)**: Spawns an isolated Python 3.12 subprocess (`.venv-demucs`) running Meta's `htdemucs_ft`. Extracts clean vocals (`stems/vocals.wav`) without polluting SheetSage2's dependency tree.
+4. **Whisper & CTC Forced Aligner (`app/whisper_transcribe.py`)**: Executes `faster-whisper large-v3` on untrimmed vocal stems to extract raw word intervals, followed by torchaudio's `WAV2VEC2_ASR_BASE_960H` CTC acoustic forced alignment to tighten syllable and word boundaries.
+5. **SheetSage2 Symbolic Transcriber (`app/sheetsage2_transcribe.py`)**: In-process PyTorch model utilizing MERT-v2 representations to extract monophonic vocal melodies and chord sequences into ABC notation format.
+6. **Lyric & Score Formatter (`app/cover_lyrics.py`, `app/score_grid.py`)**: Aligns transcribed lyrics with structural musical sections (`[Verse]`, `[Chorus]`, `[Bridge]`), bounds pickup phrases across section markers, preserves short musical notes from quantization collapse, and enforces syllable-to-score harmony.
 
-Two-phase, so lyrics can be reviewed/corrected before anything expensive runs:
+---
 
-1. **`POST /api/covers/prepare`** (multipart `file`) — uploads the source recording, starts lyrics ASR
-   only (Qwen3-ASR via the engine). Returns `{session_id, job_id}`.
-2. Poll `GET /api/jobs/{job_id}/result` for `{"lyrics": "..."}` (or `GET /api/jobs/{job_id}/events` for
-   an SSE stream). The frontend puts this in an editable textarea.
-3. **`POST /api/covers/{session_id}/generate`** (form fields: `lyrics` — the possibly-edited text,
-   `styles` — JSON array of preset ids, `cot`, `seed`, `num_inference_steps`, `flip_key`, `vocal`) —
-   consumes the session, starts the batch. Order: SheetSage2 melody transcription (CPU, in-process) →
-   sequential per-style YuE2 generation (one style failing doesn't stop the rest).
-4. **`GET /api/covers/{batch_id}/events`** (SSE) — streams `{status, stage, elapsed_s, engine_active,
-   styles: [{id, label, status, filename, error}]}` on each tick.
-5. Each finished take is written to `completed/<source>_<style>_<batch8>.wav` **the instant it's done**
-   — a crash or closed browser mid-batch never loses already-finished styles. Served at
-   `/completed/<filename>`.
+## 2. End-to-End Processing Pipeline
 
-### Other endpoints
+```mermaid
+flowchart TD
+    A["Audio Upload (WAV/MP3/FLAC)"] --> B["Create Session (session-files/<slug>-<uuid>/)"]
+    B --> C["Vocal Separation (Demucs htdemucs_ft)"]
+    C --> D["stems/vocals.wav"]
+    D --> E["faster-whisper large-v3 Word Timings"]
+    D --> F["torchaudio CTC Acoustic Alignment"]
+    E --> G["Merge Word Intervals & Confidence Scores"]
+    F --> G
+    D --> H["SheetSage2 MERT-v2 Full-Song Melody"]
+    G --> I["Interactive Lyric Review & Timing Editor"]
+    H --> J["Combined Symbolic ABC Score Grid"]
+    I --> K{"User Edits & Section Review"}
+    K --> L["Prep Sectioned Lyrics (cover_lyrics.py)"]
+    J --> M["Transposition & Key-Flip Engine"]
+    L --> N["Batch Generation Job (FastAPI Dispatcher)"]
+    M --> N
+    N --> O["Sequential Native YuE2 Inference (audio.cpp :8180)"]
+    O --> P["Instant Atomic Flush: completed/<name>_<style>_<batch>.wav"]
+    P --> Q["SSE Progress Stream & Frontend Player Update"]
+```
 
-- `GET /api/health` — `{ok, yue2_loaded, backend, device}`, proxies the engine's own `/health`.
-- `GET /api/gpu/vram` — see below.
-- `GET /api/styles`, `GET /api/styles/full`, `POST /api/styles`, `PUT /api/styles/{id}`,
-  `DELETE /api/styles/{id}` — CRUD on `styles.json`, no restart needed (uvicorn runs without
-  `--reload`, but these handlers write the file directly and the frontend re-fetches).
+### Stage 1: Ingestion & Session Initialization (`POST /api/covers/prepare`)
+- Uploaded audio files are transcoded to uncompressed 16-bit 44.1/48 kHz WAV format.
+- A persistent directory is allocated under `session-files/<sanitized-song-name>-<short-uuid>/`.
+- Session state is initialized in `session.json` with `ready: false`.
 
-### Engine API notes (audio.cpp)
+### Stage 2: Stems & Acoustic Separation (`app/vocal_separation.py`)
+- Executes `tools/separate_vocals.py` in the `.venv-demucs` virtual environment.
+- Configurable acceleration via `DEMUCS_DEVICE` (defaults to CPU, supports CUDA).
+- Generates `stems/vocals.wav` and non-destructive execution logs in `stems/demucs.log`.
+- Fast path: If `stems/vocals.wav` exists and is non-empty (>44 bytes), separation is skipped on rerun.
 
-`audiocpp_server`'s `/v1/tasks/run` only special-cases a few top-level request fields (`lyrics`,
-`seed`, `num_inference_steps`, `audio`, `text`, ...); everything else — including YuE2's `style`,
-`cot`, `abc`, `cfg_scale` — must be nested under an `"options"` object. A generation response is
-plain JSON with a base64-encoded WAV string under `"audio"` (not a nested `{data: ...}`).
+### Stage 3: Lyrical Transcription & Acoustic Alignment (`app/whisper_transcribe.py`)
+1. **ASR Pass**: `faster-whisper` large-v3 processes the untrimmed vocal stem, returning full text and initial word-level boundary estimates `(start, end, confidence)`.
+2. **CTC Acoustic Alignment Pass**: Torchaudio's `WAV2VEC2_ASR_BASE_960H` model consumes `stems/vocals.wav` and the recognized tokens. It computes the acoustic frame emissions and calculates refined token alignments.
+3. **Refinement & Review Gating**: Adjustments exceeding maximum allowable shift thresholds or scoring low alignment confidence retain original boundaries and are flagged for user review. Results are written to `lyrics-whisper-large-v3.json` and `lyrics-aligned-<hash>.json`.
 
-## VRAM gauge
+### Stage 4: Melody Transcription & ABC Score Generation (`app/sheetsage2_transcribe.py`, `app/score_grid.py`)
+- SheetSage2 and MERT-v2 evaluate both vocal stem and instrumental context.
+- Generates:
+  - `melody_notes.json`: Monophonic pitch series `(start, end, midi_pitch)`.
+  - `scores/direct-song/structure.lab`: Musical form segmentation (`intro`, `verse`, `chorus`, etc.).
+  - `scores/direct-song/score.abc`: Full ABC notation score.
+- **Quantization Protection (`app/score_grid.py`)**: `fit_note_intervals` fits ordered notes into notation grid cells without dropping short passing notes or collapsing microtonal ornamentations.
 
-Added because a GPU-backend investigation kept needing to answer "how much VRAM is actually in use
-right now" and there was no way to see it without alt-tabbing to a terminal. Two pieces:
+### Stage 5: Score Conditioning & Section Assembly (`app/cover_lyrics.py`)
+- Automatically inserts structural tags (`[Intro]`, `[Verse]`, `[Chorus]`, `[Bridge]`, `[Outro]`) into the lyrics text based on `structure.lab`.
+- **Pickup Phrase Preservation**: Prevents vocal pickup lines from being marooned in preceding instrumental or short intro sections by sliding phrase boundaries across segment edges.
+- Supports **Manual Section Override**: If the user provides explicit tags (`[Verse]`, `[Chorus]`), automatic structural splitting yields to user formatting while maintaining word interval associations.
 
-**Backend — `GET /api/gpu/vram`** (`app/server.py`)
+### Stage 6: Batch Generation & Live Stream (`POST /api/covers/{session_id}/generate`)
+- Generates covers sequentially across selected style presets.
+- Submits structured payloads to `audiocpp_server` (`/v1/tasks/run`).
+- Broadcasts real-time generation tokens, elapsed time, and style progress over SSE (`/api/covers/{batch_id}/events`).
+- **Immediate Write-on-Finish**: Each finished style take is flushed to `completed/<song>_<style>_<hash>.wav` immediately. A browser reload or subsequent style crash does not compromise already rendered tracks.
+
+---
+
+## 3. Session Storage & Persistence Specification
+
+All artifacts are persisted under `SESSION_FILES_DIR` (defaults to `session-files/`):
+
+```
+session-files/
+└── Bohemian_Rhapsody-4f81c9/
+    ├── original.wav                      # Uploaded source audio
+    ├── session.json                      # Atomic state manifest
+    ├── lyrics-history.jsonl              # Append-only edit history
+    ├── lyrics-whisper-large-v3.json      # Raw Whisper transcription + word timings
+    ├── lyrics-aligned-a1b2c3d4.json      # CTC acoustically-aligned word timings
+    ├── stems/
+    │   ├── vocals.wav                    # Demucs isolated vocal stem
+    │   └── demucs.log                    # Separation stdout/stderr diagnostic log
+    └── scores/
+        └── direct-song/
+            ├── melody_notes.json         # Raw SheetSage2 note intervals and pitches
+            ├── structure.lab             # Section boundaries (start, end, label)
+            └── score.abc                 # Compiled ABC notation score
+```
+
+### `session.json` Schema
 
 ```json
-{"available": true, "name": "NVIDIA GeForce GTX 1650 SUPER", "used_mib": 1755, "total_mib": 4096}
+{
+  "id": "4f81c9a2-9b21-4f11-9a74-123456789abc",
+  "source_name": "Bohemian Rhapsody.mp3",
+  "source_path": "original.wav",
+  "vocals_path": "stems/vocals.wav",
+  "ready": true,
+  "error": null,
+  "created_at": 1727500000.123,
+  "lyrics": "[Verse]\nIs this the real life?...",
+  "lyrics_reviewed": true,
+  "melody": {
+    "key": "Bb",
+    "meter": "4/4",
+    "bpm": 72.0,
+    "has_vocals": true
+  },
+  "transcription": {
+    "text": "Is this the real life...",
+    "words": [
+      {
+        "text": "Is",
+        "start": 0.84,
+        "end": 1.02,
+        "confidence": 0.94,
+        "pitch_matches": [58]
+      }
+    ]
+  },
+  "generations": [
+    {
+      "batch_id": "8f12a34c",
+      "style_id": "synthwave_80s",
+      "style_label": "80s Synthwave",
+      "filename": "Bohemian_Rhapsody_synthwave_80s_8f12a34c.wav",
+      "created_at": 1727500500.0,
+      "seed": 42
+    }
+  ],
+  "pipeline_version": 1
+}
 ```
 
-or `{"available": false}` for Vulkan/CPU, an unknown active device, an ambiguous
-NVIDIA device name, or an unavailable memory query. Implementation:
+### Atomic File Operations
+To eliminate data corruption during power loss or system crashes:
+- Writes are staged to `.session-<uuid>.tmp`.
+- Flushed and synchronized using `os.replace` (POSIX atomic rename; atomic on Windows NTFS).
+- Retains old state files in backup rotation if validation fails.
 
-- Locates `nvidia-smi.exe` by checking the couple of well-known install paths, then falling back to
-  globbing `C:\Windows\System32\DriverStore\FileRepository\*\nvidia-smi.exe` — the driver always ships
-  a copy there, but the path fragment (e.g. `nvmdsi.inf_amd64_<hash>`) changes across driver updates,
-  so it can't be hardcoded. The result is cached in-process after the first successful lookup.
-- Verifies the engine is using CUDA, then queries `nvidia-smi` asynchronously with
-  a 5s timeout. Uses exactly one matching active-device name; it never assumes
-  the first NVIDIA card is the active GPU.
-- **Important limitation:** `memory.used` only reflects memory that was *successfully* allocated. A
-  failed `cudaMalloc` (the engine logs `cudaMalloc failed: out of memory` when this happens) never
-  shows up here — the number simply doesn't move, because nothing was granted. So the gauge can
-  legitimately sit well under 100% right up to the moment a generation fails with an OOM error; it
-  shows committed usage, not attempted usage. A natural follow-up (not yet built) would be to also
-  surface allocation-failure lines tailed from the engine's log, so a failed request is visible even
-  when committed memory never climbs.
+---
 
-**Frontend — topbar needle gauge** (`app/static/index.html`, `styles.css`, `app.js`)
+## 4. Native Engine Integration (`audio.cpp`)
 
-- SVG semicircle, three-stop linear gradient (green → yellow → red) along the arc.
-- A needle (`<g id="vramNeedle">`) rotates via CSS `transform: rotate(...)`, animated with a
-  `transition`. Angle formula: `angle_deg = (pct / 100) * 180 - 90`, so 0% points left (green), 50%
-  points straight up (yellow), 100% points right (red) — matching the gradient direction 1:1.
-- **Scales to whatever GPU is actually installed**: the gauge's 100% mark is always `total_mib` from
-  the API response, never a hardcoded VRAM size, so the same code is correct on a 4GB card or a 24GB
-  one.
-- Polls every 1000ms (`setInterval(pollVram, 1000)`) — fast enough to visibly track a generation in
-  progress. Hides itself entirely (`vramGauge.hidden = true`) when `available` is false, e.g. on a
-  non-NVIDIA machine.
-- Crosses a `VRAM_MAXED_PCT = 97` threshold → adds an `.is-maxed` class that pulses the percentage
-  text red, as an at-a-glance "about to run out" signal.
+YuE2-3B runs natively using the high-performance C++ runtime `audio.cpp`.
 
-**Cache-busting gotcha:** `index.html` loads `app.js?v=3`. Bump this query param whenever `app.js`
-changes — the browser will otherwise silently keep serving a stale cached copy indefinitely (uvicorn
-runs without `--reload` and `StaticFiles` sets normal HTTP caching headers), and nothing will appear
-to work even though the server is serving the new file correctly.
+### Engine Configuration (`server.json`)
 
-## GPU backend repair (2026-09-15)
+```json
+{
+  "host": "127.0.0.1",
+  "port": 8180,
+  "device": 0,
+  "backend": "vulkan",
+  "models": {
+    "yue2_ar": "models/yue2/yue2-ar-3b-q4_k_m.gguf",
+    "yue2_nar": "models/yue2/yue2-nar-3b-q4_k_m.gguf",
+    "qwen_asr": "models/qwen3_asr/qwen3-asr-q8_0.gguf"
+  }
+}
+```
 
-The compatible engine fork fixes the Vulkan alignment and oversized VAE dispatch
-failures. Vulkan on Intel Arc B580 is now verified through real browser cover
-generation and playback. See [GPU setup and test evidence](docs/GPU_SETUP.md).
-The launcher uses a matching backend executable, name-based device selection,
-readiness checks, and bounded host metadata arenas. It preserves the source engine
-configuration and writes a separate runtime configuration under .runtime/.
+### Critical Engine Patches (Maintained in `pkircher29/audio.cpp:cover-studio`)
 
-The header reports the active backend and selected device. Loaded-model state is
-read from /v1/models; the engine /health models field is only a count.
-The NVIDIA memory gauge is shown only for a CUDA backend with exactly one matching
-NVIDIA device name. It is hidden for Vulkan and CPU, so it cannot present unrelated
-NVIDIA memory as Intel Arc memory.
+1. **Sliced RoPE Position View Materialization (`src/framework/modules/positional_modules.cpp`)**:
+   - *Problem*: In YuE2's batched classifier-free guidance (CFG), row 1 begins 4 bytes into the parent buffer (`view_offs != 0`). Vulkan RoPE compute pipelines require storage-buffer bindings aligned to physical GPU page strides.
+   - *Fix*: Detects `ctx.backend_type == BackendType::Vulkan && position_tensor->view_offs != 0` and invokes `ggml_cont` to copy the slice into an aligned scratch allocation before invoking `ggml_rope_ext`.
+2. **COL2IM 1D Tensor Dispatch Boundary (`external/ggml/src/ggml-vulkan/ggml-vulkan.cpp`)**:
+   - *Problem*: Long stereo audio tensors generated during YuE2 decoding exceeded the maximum Vulkan compute workgroup X dimension limit (`65535`), resulting in hardware driver aborts.
+   - *Fix*: Clamps dispatch elements to `limits.maxComputeWorkGroupCount[0] * pipeline->wg_denoms[0]` and leverages the shader's internal grid-stride loop to process remainder samples.
 
-Licenses and upstream attribution are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
-and linked from the app footer. YuE2 and SheetSage2/MERT weights are noncommercial.
+### API Request Schema (`POST /v1/tasks/run` on `:8180`)
+
+```json
+{
+  "task": "music_generation",
+  "lyrics": "[Verse]\nWords to sing...",
+  "seed": 1337,
+  "num_inference_steps": 4,
+  "options": {
+    "style": "[Genre: Synthwave] [Tempo: 110 BPM] [Rhythm Section: Linndrum 80s gated snare] ...",
+    "cot": "generate a lush analog synth intro with soaring lead guitar",
+    "abc": "X:1\nM:4/4\nL:1/8\nK:C\n|: C2 E2 G2 c2 :|",
+    "cfg_scale": 4.5,
+    "flip_key": false,
+    "vocal": "Female"
+  }
+}
+```
+
+---
+
+## 5. Style Preset Architecture
+
+Styles are defined in `app/styles.json` and are fully editable at runtime. Each style prompt uses explicit bracketed tokens to guide YuE2's Autoregressive (AR) and Non-Autoregressive (NAR) stages:
+
+```json
+{
+  "id": "prog_rock",
+  "label": "Prog Rock",
+  "prompt": "[Genre: Late 1970s–Early 1980s Progressive Rock / Heavy Virtuosic Art Rock]\n[Tempo: 120–144 BPM with frequent, seamless metric modulation and tempo shifts]\n[Time Signature: Constant shifting odd meters: alternating 7/8, 5/4, 6/8, and 4/4; polyrhythmic interplay]\n\n[Rhythm Section & Clockwork Precision]:\n- Drums: Massive, complex acoustic percussion battery (Neil Peart style); double-bass drum setup with rapid-fire, melodic 16th-note fills...\n- Bass Engine: Rickenbacker 4001 through bi-amped rig...\n\n[Guitars & Sonic Textures]:\n- Guitars: Gibson ES-355 through clean Hiwatt or Marshall tube stacks...\n\n[Vocals & Performance]:\n- Lead Vocals: High-register, operatic rock tenor (Geddy Lee style)..."
+}
+```
+
+### Style Management Endpoints
+- `GET /api/styles`: Returns light summary list `[{id, label}]`.
+- `GET /api/styles/full`: Returns full configurations including prompt bodies.
+- `POST /api/styles`: Creates a new style preset.
+- `PUT /api/styles/{id}`: Updates an existing style prompt or label.
+- `DELETE /api/styles/{id}`: Deletes a user preset (built-ins are protected).
+
+---
+
+## 6. HTTP API Specification
+
+### Hardware Diagnostics
+#### `GET /api/gpu/vram`
+Inspects NVIDIA GPU memory via `nvidia-smi` across dynamic Windows DriverStore paths.
+- **Response (200 OK)**:
+  ```json
+  {
+    "available": true,
+    "name": "NVIDIA GeForce RTX 4070 Ti",
+    "used_mib": 3412,
+    "total_mib": 12288
+  }
+  ```
+- *Note*: If Vulkan or non-NVIDIA GPUs (e.g. Intel Arc B580) are active, returns `{"available": false}`.
+
+#### `GET /api/health`
+Monitors health of both FastAPI and `audiocpp_server`.
+- **Response (200 OK)**:
+  ```json
+  {
+    "ok": true,
+    "yue2_loaded": true,
+    "backend": "vulkan",
+    "device": "Intel(R) Arc(TM) B580 Graphics",
+    "models": ["yue2-ar-3b-q4_k_m.gguf", "yue2-nar-3b-q4_k_m.gguf"]
+  }
+  ```
+
+### Session & Audio Preparation
+#### `POST /api/covers/prepare`
+Uploads source audio and launches the preparation pipeline (Demucs + Whisper + SheetSage2).
+- **Body**: `multipart/form-data` with `file: UploadFile`.
+- **Response (200 OK)**: `{"session_id": "...", "job_id": "..."}`.
+
+#### `GET /api/sessions`
+Lists all persisted song sessions sorted by creation timestamp.
+- **Response (200 OK)**: `{"sessions": [{"id": "...", "source_name": "...", "ready": true, "created_at": 1727500000.0}]}`.
+
+#### `GET /api/sessions/{session_id}`
+Returns complete session manifest including lyrics, word timings, and completed generations.
+
+#### `PUT /api/sessions/{session_id}/lyrics`
+Saves corrected lyrics text. If word counts match existing transcription, retains existing word intervals and attaches `text_edited: true` flags.
+- **Body**: `{"lyrics": "string"}`.
+
+#### `POST /api/sessions/{session_id}/tighten-timing`
+Executes secondary CTC acoustic forced alignment on the existing transcript without re-running separation or full ASR.
+
+### Generation & Output Management
+#### `POST /api/covers/{session_id}/generate`
+Initiates cover creation across one or more styles.
+- **Form Parameters**:
+  - `lyrics` (string): Final reviewed lyrics (with optional `[Verse]` / `[Chorus]` markers).
+  - `styles` (JSON array): List of style IDs, e.g. `["synthwave_80s", "prog_rock"]`.
+  - `seed` (int, default: -1): RNG seed (-1 for random).
+  - `num_inference_steps` (int, default: 4): NAR diffusion steps.
+  - `flip_key` (bool, default: false): Shifts ABC score key signature between major and relative minor.
+  - `vocal` (string, default: "Any"): Gender guidance ("Any", "Male", "Female").
+- **Response (200 OK)**: `{"batch_id": "...", "status": "running"}`.
+
+#### `GET /api/covers/{batch_id}/events`
+Server-Sent Events (SSE) telemetry stream reporting generation status.
+- **Event Data**:
+  ```json
+  {
+    "batch_id": "8f12a34c",
+    "status": "processing",
+    "stage": "Generating 80s Synthwave (1/2)",
+    "elapsed_s": 14.2,
+    "engine_active": true,
+    "styles": [
+      {
+        "id": "synthwave_80s",
+        "label": "80s Synthwave",
+        "status": "done",
+        "filename": "Song_synthwave_80s_8f12a34c.wav",
+        "error": null
+      },
+      {
+        "id": "prog_rock",
+        "label": "Prog Rock",
+        "status": "running",
+        "filename": null,
+        "error": null
+      }
+    ]
+  }
+  ```
+
+#### `GET /api/completed`
+Enumerates all finished audio files in the `completed/` directory.
+- **Response (200 OK)**:
+  ```json
+  {
+    "files": [
+      {
+        "filename": "Bohemian_Rhapsody_synthwave_80s_8f12a34c.wav",
+        "size_bytes": 15843210,
+        "created_at": 1727500500.0
+      }
+    ]
+  }
+  ```
+
+---
+
+## 7. Frontend User Experience Specification
+
+The frontend (`app/static/`) is implemented in pure modern HTML5, CSS, and ES6+ JavaScript without frameworks or bundle pipelines:
+
+1. **Top Bar & Diagnostics**:
+   - Real-time engine health and device indicators (Vulkan / CUDA backend).
+   - SVG Semicircle VRAM Gauge: needle smoothly animates from 0% (green) through 50% (yellow) to 100% (red), dynamically scaled to the physical GPU capacity.
+2. **Session & File Management**:
+   - Drag-and-drop file ingestion zone supporting `.wav`, `.mp3`, `.flac`, `.ogg`, `.m4a`.
+   - Saved Song Drawer: quick-switch between previously analyzed sessions without re-computation.
+3. **Interactive Lyrics & Timing Matrix**:
+   - Dual-view interface: structured section text view and interactive word-timing ribbon.
+   - **Click-to-Seek**: Clicking any timed word seeks the waveform player to the exact audio second.
+   - **Pitch Hover Inspector**: Hovering over words visualizes concurrent SheetSage2 melody notes and intervals.
+4. **Style Matrix & Batch Controller**:
+   - Multi-select style preset grid with individual style preview tooltips.
+   - Inline style prompt editor with JSON schema validation.
+5. **Real-Time Render Carousel**:
+   - Live generation progress indicator with elapsed timer and step counter.
+   - Immediate audio player rendering as each individual take completes in a batch.
+   - Direct WAV download buttons.
+
+---
+
+## 8. Verification & Test Suite
+
+### Regression & Unit Testing
+- `tests/unittests/test_rope_position_view.cpp`: Validates that sliced RoPE position views yield identical outputs on Vulkan compared to CPU allocations.
+- `tests/unittests/test_col2im_dispatch.cpp`: Tests 1D COL2IM convolution scatter-add operations across boundary limits exceeding 65,535 workgroups.
+- `tools/gpu_smoke.py`: End-to-end Python hardware smoke test validating Vulkan/CUDA generation against reference audio.
+- `.github/workflows/cover-studio-regression.yml`: Continuous Integration suite validating CPU fallbacks and engine bindings.
+
+---
+
+## 9. Licensing & Model Notice
+
+- **Cover Studio Source Code**: Licensed under the [Apache License, Version 2.0](LICENSE).
+- **YuE2-3B, SheetSage2, and MERT-v2 Weights**: Non-commercial research licenses ([CC BY-NC 4.0](THIRD_PARTY_NOTICES.md)). Commercial deployment requires separate licensing from respective model copyright holders.
+- **audio.cpp Engine**: Distributed under its respective open-source licensing; upstream attribution maintained in [NOTICE](NOTICE).
