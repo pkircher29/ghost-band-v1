@@ -290,6 +290,7 @@ $("openSessionBtn").addEventListener("click", async () => {
         input.checked = settings.styles.includes(input.value);
         input.closest("label").classList.toggle("is-checked", input.checked);
       }
+      updateStyleLibrary();
     }
   } catch (err) { showToast(err.message); }
   finally { preparingSong = false; }
@@ -347,13 +348,53 @@ dropzone.addEventListener("drop", (e) => {
 
 // ---- Style picker ----
 
+let stylePresets = [];
+
+function updateStyleLibrary() {
+  const selected = new Set(selectedStyleIds());
+  let visible = 0;
+  for (const card of styleGrid.children) {
+    const style = stylePresets.find(item => item.id === card.dataset.styleId);
+    if (!style) continue;
+    card.hidden = !StyleLibrary.matchesStyle(style, $("styleSearch").value, $("selectedOnly").checked, selected);
+    if (!card.hidden) visible++;
+  }
+  $("styleSelectionSummary").textContent = `${visible} of ${stylePresets.length} styles shown · ${selected.size} selected for your batch`;
+  $("styleEmpty").hidden = visible > 0 || stylePresets.length === 0;
+  $("clearStyles").disabled = selected.size === 0;
+  $("selectVisibleStyles").disabled = visible === 0;
+}
+
+$("styleSearch").addEventListener("input", updateStyleLibrary);
+$("selectedOnly").addEventListener("change", updateStyleLibrary);
+$("selectVisibleStyles").addEventListener("click", () => {
+  for (const card of styleGrid.children) {
+    if (card.hidden || !card.querySelector('input')) continue;
+    card.querySelector('input').checked = true;
+    card.querySelector('label').classList.add('is-checked');
+  }
+  updateStyleLibrary();
+});
+$("clearStyles").addEventListener("click", () => {
+  for (const input of styleGrid.querySelectorAll('input')) {
+    input.checked = false;
+    input.closest('label').classList.remove('is-checked');
+  }
+  updateStyleLibrary();
+});
+
 async function loadStyles() {
   const previouslyChecked = new Set(selectedStyleIds());
   try {
-    const res = await fetch("/api/styles");
+    const res = await fetch("/api/styles/full");
+    if (!res.ok) throw new Error('Could not load styles');
     const data = await res.json();
+    stylePresets = data.styles;
     styleGrid.innerHTML = "";
     data.styles.forEach((style) => {
+      const card = document.createElement("article");
+      card.className = "style-card";
+      card.dataset.styleId = style.id;
       const label = document.createElement("label");
       label.className = "style-option";
       label.dataset.styleId = style.id;
@@ -364,11 +405,27 @@ async function loadStyles() {
       label.classList.toggle("is-checked", input.checked);
       input.addEventListener("change", () => {
         label.classList.toggle("is-checked", input.checked);
+        updateStyleLibrary();
       });
       label.appendChild(input);
       label.appendChild(document.createTextNode(style.label));
-      styleGrid.appendChild(label);
+      card.appendChild(label);
+      const description = document.createElement('p');
+      description.className = 'style-description';
+      description.textContent = StyleLibrary.describeStyle(style);
+      card.appendChild(description);
+      if (style.prompt) {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary');
+        summary.textContent = 'View sound recipe';
+        const prompt = document.createElement('p');
+        prompt.textContent = style.prompt;
+        details.append(summary, prompt);
+        card.appendChild(details);
+      }
+      styleGrid.appendChild(card);
     });
+    updateStyleLibrary();
   } catch {
     styleGrid.innerHTML = '<span class="hint">Could not load style presets. Is the app server running?</span>';
   }

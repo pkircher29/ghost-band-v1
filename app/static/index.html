@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=20261020">
 </head>
 <body>
 
@@ -41,12 +41,16 @@
   </div>
 </header>
 
+<div class="studio-intro">
+  <h1>One song. New possibilities.</h1>
+  <p>Prepare your recording, review the words, then find its next sound.</p>
+</div>
 <main class="rack">
 
   <section class="panel" data-tab="source">
     <div class="panel-head">
       <h2>Source</h2>
-      <p class="panel-sub">Whisper transcribes isolated vocals. SheetSage2 transcribes the full recording in one pass and supplies its score directly.</p>
+      <p class="panel-sub">Start with a recording or return to a saved song.</p>
     </div>
     <div class="panel-body">
       <div class="row">
@@ -111,17 +115,27 @@
     </div>
   </section>
 
-  <section class="panel is-locked" data-tab="styles" id="stylesPanel">
+  <section class="panel" data-tab="styles" id="stylesPanel">
     <div class="panel-head">
-      <h2>Styles</h2>
-      <p class="panel-sub">Pick as many as you want &mdash; each one becomes its own finished cover.</p>
+      <h2>Find your sound</h2>
+      <p class="panel-sub">Explore by genre, instrument, or mood. Each selected style becomes a separate cover.</p>
     </div>
     <div class="panel-body">
+      <label class="field" for="styleSearch"><span class="field-label">Search styles</span>
+        <input type="search" id="styleSearch" placeholder="Try soul, guitar, or dance" autocomplete="off">
+      </label>
+      <div class="style-toolbar">
+        <label class="checkbox-row"><input type="checkbox" id="selectedOnly"> Selected only</label>
+        <button class="btn" id="selectVisibleStyles" type="button">Select visible</button>
+        <button class="btn" id="clearStyles" type="button">Clear selection</button>
+      </div>
+      <p class="hint" id="styleSelectionSummary" role="status" aria-live="polite"></p>
       <div class="style-grid" id="styleGrid"></div>
+      <p class="hint" id="styleEmpty" hidden>No matching styles. Try a different search or turn off Selected only.</p>
 
       <div class="row" style="margin-top:10px">
         <button class="btn btn-secondary" id="manageStylesBtn" type="button">Manage styles</button>
-        <span class="hint">Edit the wording of any preset, or add your own &mdash; changes are saved to <code>styles.json</code>.</span>
+        <span class="hint">Fine-tune a preset or save a sound of your own.</span>
       </div>
 
       <div class="style-manager" id="styleManager" hidden>
@@ -196,10 +210,10 @@
   <section class="panel" data-tab="results">
     <div class="panel-head">
       <h2>Covers</h2>
-      <p class="panel-sub">Finished takes are saved to <code>completed/</code> as soon as each one is done &mdash; a crash mid-run never loses what already finished.</p>
+      <p class="panel-sub">Listen, compare, and download. Each finished take is saved automatically.</p>
     </div>
     <div class="panel-body">
-      <div class="result-empty" id="resultsEmpty">Nothing generated yet.</div>
+      <div class="result-empty" id="resultsEmpty">Your next take starts above. Prepare a song and choose a style to make your first cover.</div>
       <div class="style-results" id="styleResults"></div>
     </div>
   </section>
@@ -216,6 +230,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=20260919-direct-score"></script>
+<script src="style-library.js?v=20261020"></script>
+<script src="app.js?v=20261020"></script>
 </body>
 </html>

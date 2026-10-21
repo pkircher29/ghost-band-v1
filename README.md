@@ -1,5 +1,22 @@
 # Cover Studio
 
+The style library is searchable by name, instrument, and mood. Select styles
+before preparing a recording, inspect each **sound recipe**, and use **Selected
+only** to review your batch. Filtering never removes a selection; **Select
+visible** adds the current results and **Clear selection** clears the whole batch.
+The desktop workspace places song preparation beside the style library and stacks
+the panels on smaller screens.
+
+The catalog includes 12 additional arrangements: Memphis Soul, Bossa Nova,
+Afrobeat Ensemble, Trip-Hop, Western Swing, Roots Reggae, Neo-Soul, Disco House,
+Cinematic Chamber Pop, Dreamy Shoegaze, Tango Nuevo, and New Orleans Second Line.
+These are generation prompts, not guaranteed audio outcomes; listen to generated
+takes to assess how well each arrangement fits your song.
+
+Run the dependency-free style search tests with
+`node --test tests/style-library.test.cjs` and the Python suite with
+`python -m unittest discover -s tests` in the application's Python environment.
+
 The main lyrics box includes editable section labels and line breaks. Save lyrics or Make covers preserves your exact version in the song session; automatic sectioning never replaces a reviewed version. Changing section labels alone preserves word timings. Adding, deleting, or reordering sung words may require realignment. Timed-word correction ignores section labels when locating words.
 
 A local, one-click song-cover generator built on [YuE2](https://huggingface.co/m-a-p/YuE2-3B) via the

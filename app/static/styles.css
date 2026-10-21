@@ -1,14 +1,14 @@
 :root {
   color-scheme: dark;
-  --bg: #0f1a1c;
-  --panel: #15262a;
-  --panel-raised: #1a2d31;
-  --ink: #e9e4d8;
-  --ink-dim: #9fb0ac;
-  --accent: #c98a3e;
-  --accent-soft: #7a5a2e;
-  --teal: #5fa8a0;
-  --line: #2a3d40;
+  --bg: #171e2b;
+  --panel: #202b3c;
+  --panel-raised: #29364a;
+  --ink: #f1f3f7;
+  --ink-dim: #b4c1d3;
+  --accent: #edbd70;
+  --accent-soft: #70552e;
+  --teal: #8fcbd5;
+  --line: #42516a;
   --danger: #d97a5f;
   --radius: 10px;
 }
@@ -34,7 +34,7 @@ body {
 /* ---- Topbar ---- */
 
 .topbar {
-  max-width: 780px;
+  max-width: 1320px;
   margin: 0 auto 22px;
   display: flex;
   align-items: baseline;
@@ -252,7 +252,7 @@ body {
 }
 .field-narrow input { width: 88px; }
 
-textarea, input[type="text"], input[type="number"], select {
+textarea, input[type="text"], input[type="search"], input[type="number"], select {
   background: var(--panel-raised);
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -656,4 +656,52 @@ textarea:focus, input:focus, select:focus {
 @media (max-width: 480px) {
   .field-grid { grid-template-columns: 1fr; }
   .field-narrow input { width: 100%; }
+}
+
+/* A song workspace beside a browsable sound library. */
+.studio-intro { max-width: 1320px; margin: 32px auto; }
+.studio-intro h1 { font-family: "Fraunces", Georgia, serif; font-size: clamp(28px, 4vw, 44px); font-weight: 500; line-height: 1.15; margin: 0 0 10px; }
+.studio-intro p { color: var(--ink-dim); margin: 0; max-width: 65ch; }
+.rack { max-width: 1320px; padding-left: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 22px; align-items: start; }
+.rack::before, .panel::before { display: none; }
+.panel { margin: 0; min-width: 0; padding: 24px; }
+.panel[data-tab="source"] { grid-column: 1; grid-row: 1; }
+.panel[data-tab="lyrics"] { grid-column: 1; grid-row: 2; }
+.panel[data-tab="styles"] { grid-column: 2; grid-row: 1 / span 2; border-top: 3px solid var(--accent); }
+.panel[data-tab="results"] { grid-column: 1 / -1; }
+.panel.is-locked { opacity: .7; }
+.panel-head h2 { font-size: 24px; }
+.panel-sub { max-width: 65ch; }
+.dropzone { margin: 18px 0; padding: 36px 16px; border-color: #7486a0; background: var(--bg); }
+.style-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.style-toolbar .btn { padding: 7px 10px; font-size: 12px; }
+.style-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 480px; overflow-y: auto; scrollbar-gutter: stable; padding: 3px; gap: 10px; }
+.style-card { border: 1px solid var(--line); border-radius: 8px; background: var(--panel-raised); min-width: 0; overflow-wrap: anywhere; }
+.style-card:has(input:checked) { border-color: var(--accent); }
+.style-card .style-option { border: 0; border-radius: 7px 7px 0 0; align-items: start; font-size: 14px; font-weight: 600; }
+.style-card .style-option input { margin-top: 4px; }
+.style-description { margin: 0; padding: 0 12px 10px; color: var(--ink-dim); font-size: 12px; line-height: 1.5; }
+.style-card details { padding: 0 12px 12px; font-size: 12px; }
+.style-card summary { color: var(--teal); cursor: pointer; width: fit-content; }
+.style-card details p { white-space: pre-wrap; max-height: 260px; overflow: auto; }
+.field-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.field-grid .field:first-child { grid-column: 1 / -1; }
+.field-grid select, .field-grid input { width: 100%; min-width: 0; }
+.row .field { min-width: 0; max-width: 100%; }
+.row .field select { max-width: 100%; }
+button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.style-option:focus-within { outline: 2px solid var(--teal); outline-offset: -2px; }
+#runBtn { min-width: 160px; }
+.result-empty { padding: 28px 0; }
+@media (max-width: 920px) {
+  .rack { display: flex; flex-direction: column; }
+  .panel { width: 100%; }
+}
+@media (max-width: 480px) {
+  body { padding: 18px 12px; }
+  .panel { padding: 18px 14px; }
+  .style-grid { grid-template-columns: 1fr; max-height: 420px; }
+  .field-grid { grid-template-columns: 1fr; }
+  .studio-intro { margin: 24px auto; }
+  .status { font-size: 11px; }
 }

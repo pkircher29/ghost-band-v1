@@ -113,5 +113,65 @@
     "id": "nu_metal",
     "label": "Nu Metal",
     "prompt": "[Genre: Late 1990s Nu Metal / Alternative Metal / Rap Metal / Aggro-Rock]\n[Tempo: 85–105 BPM heavy hip-hop swing, or 120–135 BPM driving bounce]\n[Time Signature: 4/4 with syncopated hip-hop groove and heavy downbeat accents]\n\n[Downtuned Guitars & Riff Architecture]:\n- Low-End Tuning: 7-string guitars tuned to Drop A / A Standard, or 6-string guitars tuned down to Drop D, Drop C, or B Standard; massive, chest-rattling low-frequency power chords.\n- Tone & Amplification: High-gain scooped-mid distortion via Mesa/Boogie Dual Rectifier stacks; tight, percussive palm-muting ('djent'-precursor chugs); dissonant minor-second intervals, sliding unison octave riffs, squealing pinch harmonics, and pick scrapes.\n- Clean & Eerie Textures: Clean verse guitars drenched in dark chorus and flanger, playing sparse, creepy single-note arpeggios or dissonant whammy-pedal pitch shifts.\n- Guitar Solos: Explicitly omitted. Zero traditional blues-rock or neoclassical guitar solos; emphasis remains entirely on the rhythmic groove, riff bounce, and dynamic impact.\n\n[Rhythm Section, Turntablism & Hip-Hop Foundation]:\n- Drums: Heavy acoustic kit tuned tight and punchy; snappy, high-pitched piccolo snare drum cracking like a gunshot on beats 2 and 4; fast double-kick bursts locked directly to the guitar chugs; loose, hip-hop-influenced hi-hat shuffle.\n- Bass Engine: 5-string electric bass (Ibanez or Warwick); ultra-clicky, clanky slap-bass attack with scooped mids and massive sub-lows (Fieldy style) where percussive string click hits before the note; locked with the kick drum to produce a physical, percussive thump.\n- Turntables & Electronics: Prominent hip-hop DJ scratch routines (vinyl baby scratches, chirp scratches, transforms), low 808 sub-drops marking heavy section drops, industrial noise sweeps, and eerie electronic sampler loops layered beneath verses.\n\n[Vocals & Performance Dynamic]:\n- Lead Vocals: Radical stylistic shifts across dynamic sections—switching between rapid-fire rhythmic hip-hop rapping, paranoid whispered verses, mournful melodic crooning, and ferocious, throat-tearing hardcore screams or feral guttural barking on the chorus.\n- Call-and-Response: Aggressive, shout-along gang vocals and rhythmic spoken ad-libs hyping up the breakdown.\n\n[Vibe & Production]:\n- Vibe: Cathartic, volatile, raw, bounce-inducing, alienated, explosive.\n- Production: Ross Robinson / Terry Date aesthetic; crushing wall-of-sound production with massive low-end clarity; razor-sharp transient bite on drums; pristine separation between downtuned guitars and hip-hop turntable textures; punchy, dynamic master bus without flattening the groove."
+  },
+  {
+    "id": "memphis_soul",
+    "label": "Memphis Soul",
+    "prompt": "[Genre: Memphis Soul / Southern Soul]\n[Groove: Relaxed midtempo 4/4, deep behind-the-beat pocket]\n[Rhythm]: Dry acoustic drums with a firm backbeat, melodic fingerstyle electric bass, and light tambourine lifting the chorus.\n[Instruments]: Warm Hammond organ, clipped clean guitar chords, and a compact trumpet-tenor-sax horn section answering the vocal in the gaps.\n[Vocals]: Expressive, conversational lead building to a gritty chorus; restrained gospel-rooted backing harmonies. Preserve the supplied lyrics and melody.\n[Production]: Close, warm rhythm section, short room reverb, subtle tape saturation, and natural dynamics. Keep the horns out of the lead vocal's way."
+  },
+  {
+    "id": "bossa_nova",
+    "label": "Bossa Nova",
+    "prompt": "[Genre: Bossa Nova / Brazilian Jazz]\n[Groove: Gentle syncopated 4/4, relaxed and flowing]\n[Rhythm]: Nylon-string guitar carries alternating bass notes and syncopated chord accents; soft cross-stick, brushes, and understated shaker.\n[Instruments]: Rounded upright bass, sparse acoustic piano with extended jazz voicings, and occasional breathy flute replies between phrases.\n[Vocals]: Intimate, lightly articulated lead with minimal vibrato; retain the source lyrics and recognizable melody.\n[Production]: Small-room warmth, clear acoustic detail, restrained low end, and minimal compression. No heavy backbeat or oversized orchestration."
+  },
+  {
+    "id": "afrobeat_ensemble",
+    "label": "Afrobeat Ensemble",
+    "prompt": "[Genre: Afrobeat / West African Funk]\n[Groove: Interlocking midtempo 4/4 ostinatos, persistent forward motion]\n[Rhythm]: Syncopated live drum kit, congas, shekere, and bell patterns weaving around a repeating electric bass figure.\n[Instruments]: Two clean electric guitars playing complementary short rhythmic patterns, percussive electric piano, and a punchy saxophone-trumpet section with unison riffs.\n[Vocals]: Rhythmically confident lead with short group responses between the supplied lyric lines; retain the song's melody.\n[Production]: Live ensemble energy, clear separation of interlocking parts, warm analog texture, and evolving layers rather than abrupt EDM drops."
+  },
+  {
+    "id": "trip_hop",
+    "label": "Trip-Hop",
+    "prompt": "[Genre: Trip-Hop / Downtempo]\n[Groove: Slow half-time breakbeat feel, loose swung subdivisions]\n[Rhythm]: Dusty sampled-style acoustic drum breaks, deep rounded sub bass, and sparse rimshot accents.\n[Instruments]: Minor-colored electric piano, muted guitar fragments, low string swells, and softly filtered atmospheric textures.\n[Vocals]: Close, restrained, emotionally present lead; keep the source melody and words intelligible.\n[Production]: Wide atmospheric space around a centered dry vocal, short tape-delay throws at phrase endings, gentle saturation, and controlled bass. Build tension through texture without obscuring the song."
+  },
+  {
+    "id": "western_swing",
+    "label": "Western Swing",
+    "prompt": "[Genre: Western Swing / Country Jazz]\n[Groove: Buoyant swung 4/4 with a dancehall two-step feel]\n[Rhythm]: Walking upright bass, brushed snare, light ride cymbal, and steady acoustic rhythm guitar.\n[Instruments]: Singing pedal steel, twin fiddle figures, clean hollow-body guitar, and honky-tonk piano trading short fills around the melody.\n[Vocals]: Easygoing, clear lead with close country harmonies on chorus endings; preserve the supplied lyrics.\n[Production]: Warm live-band room, lively instrumental separation, modest spring reverb, and natural transient detail. Keep solos brief so the vocal stays central."
+  },
+  {
+    "id": "roots_reggae",
+    "label": "Roots Reggae",
+    "prompt": "[Genre: Roots Reggae]\n[Groove: Relaxed one-drop 4/4, spacious and grounded]\n[Rhythm]: Kick and rimshot emphasize beat three, light hi-hat subdivisions, and a deep melodic bassline leading the arrangement.\n[Instruments]: Crisp offbeat guitar skank, bubbling organ, spare piano doubles, and occasional mellow horn responses.\n[Vocals]: Warm, unhurried lead and gentle harmony responses; preserve the song's lyrics and melody without forcing an accent.\n[Production]: Full rounded bass, dry rhythm guitar, selective spring reverb and tape echo at phrase endings. Keep the lead clear and the groove spacious."
+  },
+  {
+    "id": "neo_soul",
+    "label": "Neo-Soul",
+    "prompt": "[Genre: Neo-Soul / Contemporary R&B]\n[Groove: Laid-back swung 4/4 with subtle live timing variation]\n[Rhythm]: Soft deep kick, crisp rimshot and snare ghost notes, relaxed hi-hats, and melodic electric bass sliding between chord tones.\n[Instruments]: Warm Rhodes piano with extended harmonies, muted clean guitar, and sparse analog synth accents.\n[Vocals]: Intimate soulful lead with tasteful melisma at phrase endings and layered chorus harmonies; keep the supplied melody recognizable.\n[Production]: Close vocal, warm low mids, restrained stereo ambience, and an open dynamic pocket. Avoid dense parts competing with the lyric."
+  },
+  {
+    "id": "disco_house",
+    "label": "Disco House",
+    "prompt": "[Genre: Disco House / Vocal House]\n[Groove: Steady four-on-the-floor 4/4 with a lively disco pulse]\n[Rhythm]: Firm dance kick, claps on two and four, open offbeat hi-hats, and syncopated octave bass.\n[Instruments]: Bright rhythmic piano, clipped funk guitar, short disco-string lifts, and warm filtered synth chords.\n[Vocals]: Clear uplifting lead with chorus doubles; retain the original lyric order and melodic identity.\n[Production]: Tight low end, gentle rhythmic sidechain movement, bright percussion, and smooth filter transitions. Build an energetic chorus without replacing the song with a long instrumental drop."
+  },
+  {
+    "id": "chamber_pop",
+    "label": "Cinematic Chamber Pop",
+    "prompt": "[Genre: Chamber Pop / Orchestral Pop]\n[Groove: Follow the source phrasing with a restrained acoustic pulse]\n[Rhythm]: Soft kick, brushed snare, light mallets, and warm double bass.\n[Instruments]: Felt piano, string quartet, occasional clarinet or oboe responses, and delicate harp accents. Let pizzicato verses grow into legato chorus strings.\n[Vocals]: Intimate lead expanding naturally at the chorus, with subtle backing harmonies; retain the lyrics and melodic contour.\n[Production]: Detailed chamber-room acoustics, gradual dynamic swells, and clear space around the vocal. Avoid trailer percussion and oversized brass."
+  },
+  {
+    "id": "dream_shoegaze",
+    "label": "Dreamy Shoegaze",
+    "prompt": "[Genre: Shoegaze / Dream Pop]\n[Groove: Steady midtempo 4/4, unhurried and immersive]\n[Rhythm]: Solid acoustic drums, soft cymbal wash, and melodic bass anchoring sustained harmony.\n[Instruments]: Layered reverb-rich electric guitars with gentle tremolo-arm movement, chiming arpeggios, and diffuse synth pads.\n[Vocals]: Soft doubled lead with airy harmonies, still intelligible above the guitars; preserve the supplied words and tune.\n[Production]: Wide textured guitars, centered low end, blooming ambience, and contrast between intimate verses and expansive choruses. Keep distortion smooth rather than harsh."
+  },
+  {
+    "id": "tango_nuevo",
+    "label": "Tango Nuevo",
+    "prompt": "[Genre: Tango Nuevo / Contemporary Tango]\n[Groove: Dramatic 4/4 with recurring 3-3-2 accents and controlled pauses]\n[Rhythm]: Pizzicato double bass and sharply articulated piano chords supply the rhythmic drive.\n[Instruments]: Expressive bandoneon, violin, cello, and acoustic piano with short contrapuntal answers between vocal phrases.\n[Vocals]: Clear expressive lead with measured tension and release; preserve the source lyrics and melody rather than inventing new text.\n[Production]: Intimate chamber ensemble, audible bow and bellows detail, short natural room reverb, and strong dynamic contrast. Keep accompaniment restrained under dense lyric lines."
+  },
+  {
+    "id": "second_line",
+    "label": "New Orleans Second Line",
+    "prompt": "[Genre: New Orleans R&B / Second-Line Brass]\n[Groove: Rolling syncopated 4/4 with a loose parade bounce]\n[Rhythm]: Syncopated snare rolls and bass-drum accents, buoyant tuba bass, and light handclaps.\n[Instruments]: Trumpet, trombone, and tenor sax exchanging short joyful riffs, with rolling acoustic piano and spare rhythm guitar.\n[Vocals]: Playful, expressive lead with group responses between existing lyric phrases; retain the recognizable song melody.\n[Production]: Lively small-ensemble room sound, natural brass dynamics, clear vocal placement, and rhythmic breathing room. Avoid continuous horn lines over the lead."
   }
 ]
