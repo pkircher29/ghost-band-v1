@@ -6,18 +6,14 @@ Music generation is powered by YuE2 from the YuE project and its contributors:
 https://github.com/multimodal-art-projection/YuE
 https://map-yue2.github.io/
 
-Native inference is provided by audio.cpp and its contributors:
-Copyright 2026 ShugoAI LLC (audio.cpp).
-https://github.com/0xShug0/audio.cpp
-The compatible fork containing this project's Vulkan fixes is:
-https://github.com/pkircher29/audio.cpp
-
 Melody transcription uses SheetSage2 and MERT-v2-FullSong from M-A-P.
-Lyrics transcription uses Qwen3-ASR from the Qwen team.
-GGUF model conversions are provided by the audio-cpp community.
+Vocal isolation uses Demucs (Meta). Speech recognition uses Whisper large-v3
+via faster-whisper. Word alignment uses Meta's MMS forced-alignment model via
+torchaudio. Official lyrics and line time codes come from LRCLIB (lrclib.net).
+All models run on Modal (modal.com).
 
 The Apache-2.0 license for Cover Studio's code does not replace the licenses
-of separately downloaded models or dependencies. YuE2, SheetSage2, and
-MERT-v2-FullSong weights are licensed CC BY-NC 4.0 (noncommercial).
+of separately downloaded models or dependencies. YuE2, SheetSage2,
+MERT-v2-FullSong and MMS weights are licensed CC BY-NC 4.0 (noncommercial).
 See THIRD_PARTY_NOTICES.md for source, model, and license links.
 No affiliation with or endorsement by these upstream projects is claimed.

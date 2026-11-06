@@ -1,221 +1,129 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cover Studio</title>
-<link rel="icon" href="data:,">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
-
 <header class="topbar">
-  <div class="wordmark">Cover Studio</div>
-  <div class="vram-gauge" id="vramGauge" hidden>
-    <svg viewBox="0 0 200 116" width="108" height="63" aria-hidden="true">
-      <defs>
-        <linearGradient id="vramGaugeGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#4caf5f"/>
-          <stop offset="50%" stop-color="#e0c23a"/>
-          <stop offset="100%" stop-color="#d9483f"/>
-        </linearGradient>
-      </defs>
-      <path d="M 16 108 A 84 84 0 0 1 184 108" fill="none" stroke="#243638" stroke-width="14" stroke-linecap="round"/>
-      <path d="M 16 108 A 84 84 0 0 1 184 108" fill="none" stroke="url(#vramGaugeGrad)" stroke-width="14" stroke-linecap="round"/>
-      <g id="vramNeedle" style="transform-origin: 100px 108px; transform: rotate(-90deg); transition: transform 0.5s ease-out;">
-        <line x1="100" y1="108" x2="100" y2="38" stroke="#e9e4d8" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="100" cy="108" r="6" fill="#e9e4d8"/>
-      </g>
-    </svg>
-    <div class="vram-readout">
-      <span class="vram-pct" id="vramPct">&ndash;</span>
-      <span class="vram-label" id="vramLabel">VRAM</span>
-    </div>
-  </div>
-  <div class="status" id="status">
-    <span class="status-dot" id="statusDot"></span>
-    <span id="statusText">checking engine&hellip;</span>
-  </div>
+  <h1>Cover Studio</h1>
+  <span id="cloud" class="pill">Checking Modal…</span>
 </header>
+<div class="layout">
+  <aside class="library">
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept="audio/*,video/mp4,video/webm" hidden>
+      <strong>Add a song</strong>
+      <span>Drop an audio file or click. Name it “Artist - Title” for automatic lyrics.</span>
+    </label>
+    <ul id="songs"></ul>
+  </aside>
 
-<main class="rack">
+  <main id="main">
+    <section class="empty" id="empty">
+      <h2>Drop in a recording to start</h2>
+      <p>Cover Studio isolates the vocal, transcribes the melody, finds the official lyrics, times every
+        word against the singer, then generates covers in the styles you pick. All AI runs on Modal.</p>
+    </section>
 
-  <section class="panel" data-tab="source">
-    <div class="panel-head">
-      <h2>Source</h2>
-      <p class="panel-sub">Whisper transcribes isolated vocals. SheetSage2 transcribes the full recording in one pass and supplies its score directly.</p>
-    </div>
-    <div class="panel-body">
-      <div class="row">
-        <label class="field" for="savedSongSelect"><span class="field-label">Saved songs</span>
-          <select id="savedSongSelect"><option value="">Choose a saved song</option></select>
-        </label>
-        <button class="btn" id="openSessionBtn" type="button">Open song</button>
-        <button class="btn" id="refreshSessionsBtn" type="button">Refresh</button>
-      </div>
-      <p class="hint" id="sessionHint">Songs and analysis are saved so you can make more covers later.</p>
-      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose a source recording">
-        <div class="dropzone-inner">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3v12" stroke-linecap="round"/><path d="M7 10l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke-linecap="round"/></svg>
-          <span id="dropLabel">Drop a WAV or MP3 here, or click to browse</span>
+    <section id="song" hidden>
+      <div class="song-head">
+        <div class="names">
+          <input id="artist" placeholder="Artist" aria-label="Artist">
+          <input id="title" placeholder="Title" aria-label="Title">
         </div>
-        <input type="file" id="fileInput" accept="audio/*" hidden>
+        <div class="stages" id="stages"></div>
       </div>
+      <audio id="player" preload="auto"></audio>
 
-      <div class="source-player" id="sourcePlayer" hidden>
-        <audio id="sourceAudio" controls></audio>
-        <span class="filename" id="sourceFilename"></span>
-      </div>
-
-      <div class="row">
-        <button class="btn btn-primary" id="transcribeBtn" disabled>Prepare song</button>
-        <span class="hint" id="transcribeHint">Vocal separation, lyric transcription, and the full-song melody pass can take several minutes.</span>
-      </div>
-
-      <div class="progress progress-simple" id="lyricsProgress" hidden>
-        <div class="progress-head">
-          <div class="progress-pulse" id="lyricsPulse" aria-hidden="true">
-            <span></span><span></span><span></span><span></span><span></span>
-          </div>
-          <span class="progress-elapsed" id="lyricsElapsed">0:00</span>
-          <span class="progress-label" id="lyricsStageLabel">Transcribing lyrics&hellip;</span>
+      <div class="card">
+        <div class="card-head">
+          <h3>1 · Official lyrics</h3>
+          <span class="muted" id="lyricsSource"></span>
+          <div class="spacer"></div>
+          <button id="findLyrics" class="ghost">Find lyrics</button>
+          <button id="editLyrics" class="ghost">Edit text</button>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="panel is-locked" data-tab="lyrics" id="lyricsPanel">
-    <div class="panel-head">
-      <h2>Lyrics</h2>
-      <p class="panel-sub">What the model heard. Fix any misheard words, names, or ad-libs before it shapes the cover.</p>
-    </div>
-    <div class="panel-body">
-      <textarea id="lyricsText" class="abc-input" rows="8" placeholder="Transcribed lyrics will appear here." spellcheck="true"></textarea>
-      <button class="btn" id="saveLyricsBtn" type="button" disabled>Save lyrics</button>
-      <p class="hint" id="generationLyrics">Edit the lyrics, section labels, and line breaks directly above. Save lyrics keeps your version; Make covers also saves and uses your edits. Section-only edits preserve word timings.</p>
-      <button class="btn" id="whisperBtn" type="button" disabled>Use Whisper large-v3 lyrics + timing</button>
-      <button class="btn" id="tightenTimingBtn" type="button" disabled>Tighten word timing</button>
-      <p class="hint">Replaces the lyric text with the saved Whisper transcript, or transcribes it on first use. Previous lyrics are retained in the song folder.</p>
-      <p class="hint" id="timingSummary"></p>
-      <p class="hint">Use Edit beside a timed word to correct its text without moving its timing. Replacing words in the lyrics box also preserves timing when the word count stays the same.</p>
-      <div id="wordTimings" style="display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow:auto"></div>
-      <div id="vocalPreview" hidden>
-        <p class="hint">Isolated vocals used for lyrics and vocal melody</p>
-        <audio id="vocalAudio" controls preload="none" aria-label="Isolated vocals"></audio>
-        <p class="hint" id="melodySummary"></p>
-      </div>
-      <div id="savedCovers"></div>
-    </div>
-  </section>
-
-  <section class="panel is-locked" data-tab="styles" id="stylesPanel">
-    <div class="panel-head">
-      <h2>Styles</h2>
-      <p class="panel-sub">Pick as many as you want &mdash; each one becomes its own finished cover.</p>
-    </div>
-    <div class="panel-body">
-      <div class="style-grid" id="styleGrid"></div>
-
-      <div class="row" style="margin-top:10px">
-        <button class="btn btn-secondary" id="manageStylesBtn" type="button">Manage styles</button>
-        <span class="hint">Edit the wording of any preset, or add your own &mdash; changes are saved to <code>styles.json</code>.</span>
-      </div>
-
-      <div class="style-manager" id="styleManager" hidden>
-        <div class="style-editor-list" id="styleEditorList"></div>
-
-        <div class="style-editor-card style-editor-new">
-          <span class="field-label">Add a style</span>
-          <label class="field">
-            <span class="field-label">Name</span>
-            <input type="text" id="newStyleLabel" placeholder="e.g. Bossa Nova">
-          </label>
-          <label class="field">
-            <span class="field-label">Prompt</span>
-            <textarea id="newStylePrompt" rows="2" placeholder="English, bossa nova, nylon guitar, soft brushes, breathy vocal&hellip;"></textarea>
-          </label>
+        <div id="finder" hidden>
           <div class="row">
-            <button class="btn btn-primary" id="addStyleBtn" type="button">Add style</button>
+            <input id="qArtist" placeholder="Artist">
+            <input id="qTitle" placeholder="Title">
+            <button id="search">Search</button>
           </div>
+          <ul class="candidates" id="candidates"></ul>
+          <p class="muted small">Matches come from LRCLIB. The one whose length matches your file best is listed first.</p>
+        </div>
+        <div id="editor" hidden>
+          <textarea id="lyricsText" rows="14" spellcheck="true"></textarea>
+          <div class="row"><button id="saveLyrics">Save and re-time words</button>
+            <button id="cancelLyrics" class="ghost">Cancel</button>
+            <span class="muted small">One sung line per row. Put backing-vocal echoes in (parentheses).</span></div>
         </div>
       </div>
 
-      <div class="field-grid" style="margin-top:18px">
-        <label class="field">
-          <span class="field-label">Melody adherence</span>
-          <select id="cotSelect">
-            <option value="melody" selected>Melody &mdash; keep the tune, free the arrangement</option>
-            <option value="off">Off &mdash; ignore the transcribed score</option>
-          </select>
-        </label>
-        <label class="field field-narrow">
-          <span class="field-label">Seed</span>
-          <input type="number" id="seedInput" value="831001" min="0">
-        </label>
-        <label class="field field-narrow">
-          <span class="field-label">Steps</span>
-          <input type="number" id="stepsInput" value="16" min="1" max="64">
-        </label>
-        <label class="field field-narrow">
-          <span class="field-label">Vocal</span>
-          <select id="vocalSelect">
-            <option value="any" selected>Any</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="row">
-        <label class="checkbox-row">
-          <input type="checkbox" id="flipKeyInput">
-          <span>Flip major/minor key <span class="hint">(major becomes minor, minor becomes major, before generating)</span></span>
-        </label>
-      </div>
-
-      <div class="row">
-        <button class="btn btn-primary btn-large" id="runBtn" disabled>Make covers</button>
-        <span class="hint" id="runHint">Generates each selected style using your reviewed lyrics and SheetSage2’s directly exported full-song melody score.</span>
-      </div>
-
-      <div class="progress" id="progress" hidden>
-        <div class="progress-head">
-          <div class="progress-pulse" id="progressPulse" aria-hidden="true">
-            <span></span><span></span><span></span><span></span><span></span>
-          </div>
-          <span class="progress-elapsed" id="progressElapsed">0:00</span>
-          <span class="progress-label" id="progressStageLabel"></span>
+      <div class="card">
+        <div class="card-head">
+          <h3>2 · Word timing</h3>
+          <span class="muted" id="alignStats"></span>
+          <div class="spacer"></div>
+          <label class="toggle"><input type="checkbox" id="hearMix"> hear full mix</label>
+          <a id="lrcLink" class="button ghost" download hidden>Download LRC</a>
+        </div>
+        <p class="muted small">Click a word to hear exactly its span. Orange words need a look. Fix an edge with the nudge buttons — beginnings and ends are edited separately.</p>
+        <div id="timeline" class="timeline"></div>
+        <div id="wordEditor" class="word-editor" hidden>
+          <strong id="weWord"></strong>
+          <span class="muted" id="weWhy"></span>
+          <div class="edge"><span>Start</span>
+            <button data-nudge="start:-0.05">−50</button><button data-nudge="start:-0.01">−10</button>
+            <input id="weStart" type="number" step="0.005">
+            <button data-nudge="start:0.01">+10</button><button data-nudge="start:0.05">+50</button></div>
+          <div class="edge"><span>End</span>
+            <button data-nudge="end:-0.05">−50</button><button data-nudge="end:-0.01">−10</button>
+            <input id="weEnd" type="number" step="0.005">
+            <button data-nudge="end:0.01">+10</button><button data-nudge="end:0.05">+50</button></div>
+          <div class="row"><button id="wePlay" class="ghost">Play</button>
+            <button id="wePlayStart" class="ghost">Hear start</button><button id="wePlayEnd" class="ghost">Hear end</button>
+            <button id="weSave">Save timing</button></div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <section class="panel" data-tab="results">
-    <div class="panel-head">
-      <h2>Covers</h2>
-      <p class="panel-sub">Finished takes are saved to <code>completed/</code> as soon as each one is done &mdash; a crash mid-run never loses what already finished.</p>
-    </div>
-    <div class="panel-body">
-      <div class="result-empty" id="resultsEmpty">Nothing generated yet.</div>
-      <div class="style-results" id="styleResults"></div>
-    </div>
-  </section>
+      <div class="card">
+        <div class="card-head">
+          <h3>3 · Sung phrasing</h3>
+          <span class="muted" id="phrasingMethod"></span>
+          <div class="spacer"></div>
+          <button id="resetPhrasing" class="ghost">Rebuild automatically</button>
+        </div>
+        <p class="muted small">Exactly what YuE2 sings: one phrase per line, grouped into sections. Edit freely.</p>
+        <textarea id="genLyrics" rows="16"></textarea>
+        <div class="row"><button id="savePhrasing" class="ghost">Save phrasing</button></div>
+      </div>
 
-</main>
+      <div class="card">
+        <div class="card-head"><h3>4 · Styles</h3><div class="spacer"></div>
+          <span class="muted" id="pickCount">0 picked</span></div>
+        <div id="styleGrid" class="style-grid"></div>
+        <textarea id="customStyle" rows="2" placeholder="Optional: describe your own style (genre, instruments, vocal character, mix)"></textarea>
+        <div class="row options">
+          <label>Vocal <select id="vocal"><option value="auto">As described</option><option value="female">Female</option><option value="male">Male</option></select></label>
+          <label>Melody <select id="melodyMode"><option value="source">Keep the original melody</option><option value="free">Let YuE2 write a new one</option></select></label>
+          <label>Seed <input id="seed" type="number" placeholder="random"></label>
+          <div class="spacer"></div>
+          <button id="make" class="primary">Make covers</button>
+        </div>
+      </div>
 
-<footer class="credits">
-  Powered by <a href="https://github.com/multimodal-art-projection/YuE" target="_blank" rel="noopener noreferrer">YuE2 by the YuE project</a>
-  &middot; <a href="https://github.com/0xShug0/audio.cpp" target="_blank" rel="noopener noreferrer">audio.cpp</a>
-  &middot; <a href="https://huggingface.co/m-a-p/SheetSage2" target="_blank" rel="noopener noreferrer">SheetSage2</a>
-  <br>YuE2 and SheetSage2 model weights: <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC 4.0 &mdash; noncommercial</a>.
-  <a href="https://github.com/pkircher29/cover-studio/blob/master/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener noreferrer">Credits &amp; licenses</a>
-</footer>
-
-<div class="toast" id="toast" hidden></div>
-
-<script src="app.js?v=20260919-direct-score"></script>
+      <div class="card">
+        <div class="card-head"><h3>5 · Takes</h3></div>
+        <ul id="takes" class="takes"></ul>
+      </div>
+    </section>
+  </main>
+</div>
+<footer>YuE2, SheetSage2 and MERT weights are CC BY-NC 4.0 (non-commercial). Lyrics via LRCLIB. <a href="https://github.com/pkircher29/cover-studio">Source</a></footer>
+<script src="app.js?v=21"></script>
 </body>
 </html>

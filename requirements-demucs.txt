@@ -1,6 +1,0 @@
-# Separate environment: avoids changing SheetSage2's pinned dependencies.
-demucs==4.0.1
-torch==2.5.1
-torchaudio==2.5.1
-numpy<2
-soundfile>=0.12,<1
