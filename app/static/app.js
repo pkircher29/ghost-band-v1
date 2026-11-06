@@ -499,3 +499,35 @@ async function pollVram() {
 pollVram();
 setInterval(pollVram, 1000);
 setInterval(pollHealth, 15000);
+
+async function loadCompletedFiles() {
+  try {
+    const res = await fetch("/api/completed");
+    const data = await res.json();
+    if (data.files && data.files.length > 0) {
+      resultsEmpty.hidden = true;
+      for (const file of data.files) {
+        const id = "file_" + file.filename.replace(/[^a-zA-Z0-9]/g, "_");
+        if (!document.getElementById(id)) {
+          const row = document.createElement("div");
+          row.id = id;
+          row.className = "style-result is-done";
+          const displayName = file.filename.replace(/\.wav$/i, "").replace(/_/g, " ");
+          row.innerHTML = `
+            <span class="style-result-label">${displayName}</span>
+            <span class="style-result-status"></span>
+            <audio controls src="/completed/${encodeURIComponent(file.filename)}"></audio>
+            <a href="/completed/${encodeURIComponent(file.filename)}" download="${file.filename}" target="_blank" class="btn btn-secondary" style="padding:4px 10px;text-decoration:none;margin-left:auto;">Download</a>
+          `;
+          styleResults.appendChild(row);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Failed to load completed files", e);
+  }
+}
+
+loadCompletedFiles();
+setInterval(loadCompletedFiles, 5000);
+

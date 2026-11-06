@@ -610,6 +610,19 @@ async def _run_batch(
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
+@app.get("/api/completed")
+async def list_completed():
+    files = []
+    if COMPLETED_DIR.exists():
+        for p in sorted(COMPLETED_DIR.glob("*.wav"), key=lambda f: f.stat().st_mtime, reverse=True):
+            files.append({
+                "filename": p.name,
+                "size_bytes": p.stat().st_size,
+                "created_at": p.stat().st_mtime,
+            })
+    return {"files": files}
+
+
 @app.get("/api/styles")
 async def list_styles():
     return {"styles": [{"id": s["id"], "label": s["label"]} for s in STYLE_PRESETS]}

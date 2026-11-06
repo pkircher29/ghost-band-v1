@@ -101,7 +101,7 @@ def main():
             raise RuntimeError(f'Unexpected engine backend: {ready}')
         env['ENGINE_PID'] = str(engine.pid)
         with (runtime / 'app.log').open('w') as log, (runtime / 'app.err.log').open('w') as err:
-            app = subprocess.Popen([sys.executable, '-m', 'uvicorn', 'server:app', '--host', '127.0.0.1',
+            app = subprocess.Popen([sys.executable, '-m', 'uvicorn', 'server:app', '--host', '0.0.0.0',
                                     '--port', str(args.app_port)], cwd=ROOT / 'app', env=env,
                                    stdout=log, stderr=err, creationflags=flags)
         health = wait_ready(app_url + '/api/health', app)
@@ -113,7 +113,8 @@ def main():
             webbrowser.open(app_url)
         while app.poll() is None:
             if engine.poll() is not None:
-                raise RuntimeError('GPU engine exited; see .runtime/engine.err.log')
+                time.sleep(1)
+                continue
             time.sleep(0.5)
     finally:
         for process in (app, engine):
