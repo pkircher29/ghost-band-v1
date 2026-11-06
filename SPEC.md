@@ -1,12 +1,12 @@
-# Cover Studio — Technical Specification
+# Ghost Band — Technical Specification
 
-Cover Studio is a local-first, one-click AI song cover generation studio built on **YuE2-3B**, **audio.cpp**, **SheetSage2**, and **faster-whisper**. It transforms source audio recordings into fully arranged, style-transformed vocal and instrumental covers while preserving source melody, lyrical cadence, and phrasing structure.
+Ghost Band is a local-first, one-click AI song cover generation studio built on **YuE2-3B**, **audio.cpp**, **SheetSage2**, and **faster-whisper**. It transforms source audio recordings into fully arranged, style-transformed vocal and instrumental covers while preserving source melody, lyrical cadence, and phrasing structure.
 
 ---
 
 ## 1. System Architecture
 
-Cover Studio employs a decoupled multi-process architecture to isolate heavy machine learning dependencies (PyTorch, transformers, CUDA/Vulkan runtimes) and prevent Python dependency conflicts (specifically SheetSage2's dependency on `transformers==4.45.2` versus newer HuggingFace libraries).
+Ghost Band employs a decoupled multi-process architecture to isolate heavy machine learning dependencies (PyTorch, transformers, CUDA/Vulkan runtimes) and prevent Python dependency conflicts (specifically SheetSage2's dependency on `transformers==4.45.2` versus newer HuggingFace libraries).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -400,6 +400,6 @@ The frontend (`app/static/`) is implemented in pure modern HTML5, CSS, and ES6+ 
 
 ## 9. Licensing & Model Notice
 
-- **Cover Studio Source Code**: Licensed under the [Apache License, Version 2.0](LICENSE).
+- **Ghost Band Source Code**: Licensed under the [Apache License, Version 2.0](LICENSE).
 - **YuE2-3B, SheetSage2, and MERT-v2 Weights**: Non-commercial research licenses ([CC BY-NC 4.0](THIRD_PARTY_NOTICES.md)). Commercial deployment requires separate licensing from respective model copyright holders.
 - **audio.cpp Engine**: Distributed under its respective open-source licensing; upstream attribution maintained in [NOTICE](NOTICE).

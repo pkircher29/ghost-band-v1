@@ -1,6 +1,6 @@
 # Credits and third-party licenses
 
-Cover Studio's original integration code is licensed under [Apache-2.0](LICENSE).
+Ghost Band's original integration code is licensed under [Apache-2.0](LICENSE).
 This source repository does not distribute model weights, downloaded model
 implementation files, Python packages, native executables, or recordings.
 Those components retain their own licenses when installed separately.
@@ -27,7 +27,7 @@ repository does not grant rights to third-party songs or recordings.
 For code and assets in official YuE distributions, retain their
 [third-party notices](https://github.com/multimodal-art-projection/YuE/blob/main/THIRD_PARTY_NOTICES.md)
 and [license texts](https://github.com/multimodal-art-projection/YuE/tree/main/licenses)
-if redistributing those distributions. Cover Studio calls the native engine
+if redistributing those distributions. Ghost Band calls the native engine
 over HTTP and loads separately installed SheetSage2 model code through Transformers.
 
 ## Runtime dependencies

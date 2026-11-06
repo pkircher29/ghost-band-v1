@@ -1,7 +1,7 @@
-Cover Studio
-Copyright 2026 Cover Studio contributors
+Ghost Band
+Copyright 2026 Ghost Band contributors
 
-Cover Studio is an independent user interface and integration for YuE2.
+Ghost Band is an independent user interface and integration for YuE2.
 Music generation is powered by YuE2 from the YuE project and its contributors:
 https://github.com/multimodal-art-projection/YuE
 https://map-yue2.github.io/
@@ -16,7 +16,7 @@ Melody transcription uses SheetSage2 and MERT-v2-FullSong from M-A-P.
 Lyrics transcription uses Qwen3-ASR from the Qwen team.
 GGUF model conversions are provided by the audio-cpp community.
 
-The Apache-2.0 license for Cover Studio's code does not replace the licenses
+The Apache-2.0 license for Ghost Band's code does not replace the licenses
 of separately downloaded models or dependencies. YuE2, SheetSage2, and
 MERT-v2-FullSong weights are licensed CC BY-NC 4.0 (noncommercial).
 See THIRD_PARTY_NOTICES.md for source, model, and license links.

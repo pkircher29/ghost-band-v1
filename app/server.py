@@ -1,4 +1,4 @@
-"""Cover Studio app server.
+"""Ghost Band app server.
 
 Bridges a plain browser UI to two local engines:
 - audiocpp_server (native, Vulkan-accelerated) for YuE2 music generation.
@@ -39,7 +39,7 @@ import cover_lyrics
 from session_store import Session
 
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("cover_studio")
+log = logging.getLogger("ghost_band")
 
 AUDIOCPP_URL = os.environ.get("AUDIOCPP_URL", "http://127.0.0.1:8180")
 YUE2_MODEL_ID = os.environ.get("YUE2_MODEL_ID", "yue2")
@@ -96,7 +96,7 @@ STYLE_PRESETS: list[dict] = _load_styles()
 STYLE_PRESETS_BY_ID: dict[str, dict] = {}
 _rebuild_styles_by_id()
 
-app = FastAPI(title="Cover Studio")
+app = FastAPI(title="Ghost Band")
 
 # Stage names in pipeline order. audio.cpp logs a distinct marker string per
 # stage transition; a cold model load only happens on the first request after
@@ -281,7 +281,7 @@ async def _run_transcribe_job(job: Job, audio_path: str, tmp_dir: str) -> None:
 
 @app.post("/api/transcribe")
 async def transcribe(file: UploadFile = File(...)):
-    tmp_dir = tempfile.mkdtemp(prefix="cover-studio-")
+    tmp_dir = tempfile.mkdtemp(prefix="ghost-band-")
     suffix = Path(file.filename or "source.wav").suffix or ".wav"
     source_path = Path(tmp_dir) / f"source{suffix}"
     source_path.write_bytes(await file.read())

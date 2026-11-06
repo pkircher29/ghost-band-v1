@@ -1,4 +1,4 @@
-"""Launch the selected native backend and Cover Studio with readiness checks."""
+"""Launch the selected native backend and Ghost Band with readiness checks."""
 from pathlib import Path
 import argparse
 import json
@@ -49,7 +49,7 @@ def main():
     for port in (args.engine_port, args.app_port):
         with socket.socket() as sock:
             if sock.connect_ex(('127.0.0.1', port)) == 0:
-                raise RuntimeError(f'Port {port} is in use. Close the existing Cover Studio launcher first.')
+                raise RuntimeError(f'Port {port} is in use. Close the existing Ghost Band launcher first.')
     env = os.environ.copy()
     for key, variable in (('demucs_python', 'DEMUCS_PYTHON'), ('demucs_device', 'DEMUCS_DEVICE'),
                           ('torch_home', 'TORCH_HOME'), ('whisper_python', 'WHISPER_PYTHON'),
@@ -130,9 +130,9 @@ def main():
                                    stdout=log, stderr=err, creationflags=flags)
         health = wait_ready(app_url + '/api/health', app, timeout_seconds=300)
         if not health.get('ok'):
-            raise RuntimeError('Cover Studio cannot reach the engine')
+            raise RuntimeError('Ghost Band cannot reach the engine')
         (runtime / 'processes.json').write_text(json.dumps({'launcher': os.getpid(), 'engine': engine.pid, 'app': app.pid}))
-        print(f'Cover Studio ready: {app_url} ({device_name}). Ctrl+C to stop.', flush=True)
+        print(f'Ghost Band ready: {app_url} ({device_name}). Ctrl+C to stop.', flush=True)
         if not args.no_browser:
             webbrowser.open(app_url)
         while app.poll() is None:
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print('Cover Studio stopped.')
+        print('Ghost Band stopped.')
     except Exception as exc:
-        print(f'Cannot start Cover Studio: {exc}', file=sys.stderr)
+        print(f'Cannot start Ghost Band: {exc}', file=sys.stderr)
         sys.exit(1)

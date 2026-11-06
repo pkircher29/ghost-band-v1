@@ -1,4 +1,4 @@
-# Cover Studio
+# Ghost Band
 
 The main lyrics box includes editable section labels and line breaks. Save lyrics or Make covers preserves your exact version in the song session; automatic sectioning never replaces a reviewed version. Changing section labels alone preserves word timings. Adding, deleting, or reordering sung words may require realignment. Timed-word correction ignores section labels when locating words.
 
@@ -99,7 +99,7 @@ original authors. See the [official project](https://map-yue2.github.io/) and
 [SheetSage2](https://huggingface.co/m-a-p/SheetSage2) and MERT-v2, and lyrics
 transcription uses Whisper large-v3. This is an independent community interface.
 
-Cover Studio code: [Apache-2.0](LICENSE). **YuE2, SheetSage2 and MERT-v2 model
+Ghost Band code: [Apache-2.0](LICENSE). **YuE2, SheetSage2 and MERT-v2 model
 weights: CC BY-NC 4.0 (noncommercial).** The code license does not grant commercial
 permission for those models. Models and recordings are not included in this repo.
 See [NOTICE](NOTICE) and [third-party credits and license links](THIRD_PARTY_NOTICES.md).

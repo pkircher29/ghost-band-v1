@@ -73,5 +73,5 @@ def load_all(root: Path | None = None) -> dict[str, Session]:
                     generation["status"] = "interrupted"
             result[session.id] = session
         except (OSError, ValueError, TypeError, KeyError):
-            logging.getLogger("cover_studio").exception("Cannot read saved session %s", manifest)
+            logging.getLogger("ghost_band").exception("Cannot read saved session %s", manifest)
     return result
