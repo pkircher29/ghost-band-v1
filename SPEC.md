@@ -206,7 +206,7 @@ YuE2-3B runs natively using the high-performance C++ runtime `audio.cpp`.
 }
 ```
 
-### Critical Engine Patches (Maintained in `pkircher29/audio.cpp:cover-studio`)
+### Critical Engine Patches (Maintained in `pkircher29/audio.cpp:ghost-band`)
 
 1. **Sliced RoPE Position View Materialization (`src/framework/modules/positional_modules.cpp`)**:
    - *Problem*: In YuE2's batched classifier-free guidance (CFG), row 1 begins 4 bytes into the parent buffer (`view_offs != 0`). Vulkan RoPE compute pipelines require storage-buffer bindings aligned to physical GPU page strides.
@@ -394,7 +394,7 @@ The frontend (`app/static/`) is implemented in pure modern HTML5, CSS, and ES6+ 
 - `tests/unittests/test_rope_position_view.cpp`: Validates that sliced RoPE position views yield identical outputs on Vulkan compared to CPU allocations.
 - `tests/unittests/test_col2im_dispatch.cpp`: Tests 1D COL2IM convolution scatter-add operations across boundary limits exceeding 65,535 workgroups.
 - `tools/gpu_smoke.py`: End-to-end Python hardware smoke test validating Vulkan/CUDA generation against reference audio.
-- `.github/workflows/cover-studio-regression.yml`: Continuous Integration suite validating CPU fallbacks and engine bindings.
+- `.github/workflows/ghost-band-regression.yml (in pkircher29/audio.cpp)`: Continuous Integration suite validating CPU fallbacks and engine bindings.
 
 ---
 

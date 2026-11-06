@@ -2,7 +2,7 @@
 
 ## Compatible engine
 
-Use [pkircher29/audio.cpp](https://github.com/pkircher29/audio.cpp), branch `cover-studio` (the fork's default).
+Use [pkircher29/audio.cpp](https://github.com/pkircher29/audio.cpp), branch `ghost-band` (the fork's default).
 The Vulkan fixes are commit `480280a` (based on upstream `87544b5`), also reviewed
 in [engine PR 1](https://github.com/pkircher29/audio.cpp/pull/1).
 Upstream attribution and licenses are retained in the fork.
